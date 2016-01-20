@@ -1,0 +1,17 @@
+# QT IDE project files
+*.config
+*.creator
+*.creator.user
+*.files
+*.includes
+
+# Eclipse project files
+*.project
+*.cproject
+
+*.*~
+*.o
+build/
+data/
+main
+/Debug/
