@@ -1,6 +1,6 @@
 #include "QuadTree.h"
 #include <cassert>
-#include "GLWindow2.h"
+#include <cvd/glwindow.h>
 #include <cvd/gl_helpers.h>
 
 bool BoundingBox
@@ -216,10 +216,12 @@ Visualize(CVD::Image<CVD::byte> &im)
     std::list<QuadTreeElement> elemlist;
     Traverse(boxlist,elemlist);
 
-    GLWindow2 glw(CVD::ImageRef(root.win.nW,root.win.nH),"Quadtree");
+    CVD::GLWindow glw(CVD::ImageRef(root.win.nW,root.win.nH),"Quadtree");
     glClearColor(1,1,1,1);
     glClear(GL_COLOR_BUFFER_BIT);
-    glw.SetupWindowOrtho(CVD::ImageRef(root.win.nW,root.win.nH));
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0,root.win.nW,root.win.nH,0,-1.0,1.0);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 

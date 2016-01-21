@@ -1,10 +1,10 @@
 #include <iostream>
 #include <cvd/image_io.h>
+#include <cvd/glwindow.h>
 #include <cvd/gl_helpers.h>
 #include <cvd/camera.h>
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <gvars3/instances.h>
 #include "LevelHelpers.h"
 #include "CvOrb.h"
 #include "FivePoint.h"
@@ -73,8 +73,10 @@ DrawCamera()
 
 int main()
 {
-    srand(time(NULL));
-    std::cout << "Iterative 5-point algorithm demo" << std::endl;
+    std::cout << "Example of using CvOrb class..." << std::endl;
+
+    CVD::Image<CVD::byte> imA = CVD::img_load("../data/kf0.jpg");
+    CVD::Image<CVD::byte> imB = CVD::img_load("../data/kf1.jpg");
 
     std::ifstream inFile;
     inFile.open("../data/camera.txt");
@@ -83,10 +85,6 @@ int main()
     inFile.close();
 
     std::cout << cam_params.get_parameters() << std::endl;
-
-
-    CVD::Image<CVD::byte> imA = CVD::img_load("../data/kf0.jpg");
-    CVD::Image<CVD::byte> imB = CVD::img_load("../data/kf1.jpg");
 
     std::vector<CVD::Image<CVD::byte> > pyrA, pyrB;
     BuildPyramid(imA,pyrA);
@@ -99,9 +97,8 @@ int main()
     std::vector<std::vector<cv::KeyPoint> > kpA_all, kpB_all;
     std::vector<cv::KeyPoint> kpA, kpB;
     cv::Mat descA, descB;
-
-    cv_orbA.ComputeKeyPoints(kpA_all);
-    cv_orbB.ComputeKeyPoints(kpB_all);
+    cv_orbA.ComputeKeyPoints_QuadTree(kpA_all);
+    cv_orbB.ComputeKeyPoints_QuadTree(kpB_all);
     cv_orbA.ComputeWithKeypoints(kpA_all, kpA, descA);
     cv_orbB.ComputeWithKeypoints(kpB_all, kpB, descB);
 
@@ -119,7 +116,6 @@ int main()
     matcher.knnMatch(descB, matches, 2); // Get the 2 best approximate matches
 
     std::vector<cv::KeyPoint> kpA_filt, kpB_filt;
-    std::vector<TwoViewMatch> tv_matches;
     for(std::vector<std::vector<cv::DMatch> >::iterator
         it = matches.begin();
         it != matches.end(); ++it)
@@ -134,27 +130,18 @@ int main()
 
         kpA_filt.push_back(kpA[m.trainIdx]);
         kpB_filt.push_back(kpB[m.queryIdx]);
-
-        TooN::Vector<2> v2a = TooN::makeVector(kpA_filt.back().pt.x,kpA_filt.back().pt.y);
-        TooN::Vector<2> v2b = TooN::makeVector(kpB_filt.back().pt.x,kpB_filt.back().pt.y);
-        TwoViewMatch tvm;
-        tvm.v3a = TooN::unproject(cam_params.unproject(v2a));
-        tvm.v3b = TooN::unproject(cam_params.unproject(v2b));
-        TooN::normalize(tvm.v3a);
-        TooN::normalize(tvm.v3b);
-
-        tv_matches.push_back(tvm);
     }
 
     // Here's how the putative correspondences look like
     CVD::ImageRef irWindowSize = imA.size();
     irWindowSize.x *= 2;
-    GLWindow2 glw(irWindowSize, "Putative correspondences");
+    CVD::GLWindow glw(irWindowSize, "Putative correspondences");
     glRasterPos2d(0,0);
     CVD::glDrawPixels(imA);
     glRasterPos2d(imA.size().x,0);
     CVD::glDrawPixels(imB);
     glRasterPos2d(0,0);
+    std::vector<TwoViewMatch> tv_matches;
     for(size_t i = 0; i < kpA_filt.size(); ++i)
     {
         glColor3f(0,1,0);
@@ -170,13 +157,29 @@ int main()
         glVertex2f(kpA_filt[i].pt.x,kpA_filt[i].pt.y);
         glVertex2f(kpB_filt[i].pt.x+imA.size().x,kpB_filt[i].pt.y);
         glEnd();
+
+        TooN::Vector<2> v2a = TooN::makeVector(kpA_filt[i].pt.x,kpA_filt[i].pt.y);
+        TooN::Vector<2> v2b = TooN::makeVector(kpB_filt[i].pt.x,kpB_filt[i].pt.y);
+        TwoViewMatch tvm;
+        tvm.v3a = TooN::unproject(cam_params.unproject(v2a));
+        tvm.v3b = TooN::unproject(cam_params.unproject(v2b));
+
+        std::cout << tvm.v3a << " == " << tvm.v3b << std::endl;
+        TooN::normalize(tvm.v3a);
+        TooN::normalize(tvm.v3b);
+
+        tv_matches.push_back(tvm);
     }
     glw.swap_buffers();
     std::cin.get();
 
     TwoViewSolver solver;
-    solver.Solve(tv_matches, tv_matches, 500);
+    solver.Solve(tv_matches, tv_matches, 1000);
+    solver.SE3_from_E();
     TooN::SE3<> se3AtoB = solver.SE3_from_E();
+    std::cout << se3AtoB.ln() <<std::endl;
+
+
     std::vector<bool> inliers_vec = solver.GetInlierClassification();
     std::vector<TooN::Vector<3> > points;
     solver.Get3DPoints_Cam1(points);
@@ -189,7 +192,7 @@ int main()
         points[i] /= dist_avg;
     se3AtoB.get_translation() /= dist_avg;
 
-    glw.set_size(CVD::ImageRef(640,480));
+    GLWindow2 glwindow(CVD::ImageRef(640,480),"");
     TooN::SE3<> se3ViewerFromOrigin;
     while(1)
     {
@@ -201,7 +204,7 @@ int main()
         gluPerspective(70,1,0.1,50);
 
         std::pair<TooN::Vector<6>, TooN::Vector<6> >
-                pv6 = glw.GetPoseUpdate();
+                pv6 = glwindow.GetPoseUpdate();
         TooN::SE3<> se3CamFromMC;
         const TooN::Vector<3> v3MC = TooN::Zeros; // TODO: get real mass center from map
         se3CamFromMC.get_translation() = se3ViewerFromOrigin * v3MC;
@@ -231,10 +234,9 @@ int main()
         }
         glPointSize(1);
 
-        glw.swap_buffers();
-        glw.HandlePendingEvents();
+        glwindow.swap_buffers();
+        glwindow.HandlePendingEvents();
     }
-    std::cout << solver.SE3_from_E().ln() << std::endl;
 
     return 0;
 }
