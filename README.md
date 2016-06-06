@@ -65,6 +65,8 @@ Finally, to install FivePoint,
 
 There are two examples showing how to use the 5-point algorithm, one in *main.cpp* and the other in *LiveVideo.cpp*. *main.cpp* shows the 5-point algorithm solving the relative pose problem given two images, whereas *LiveVideo.cpp* is a live video application.
 
+Remember to change *camera.txt* in the *data* folder to the correct camera calibration parameters (fu, fv, cu, cv). The camera parameters supplied with this repository with the provided images kf0.jpg and kf1.jpg that are can be obtained from the Downloads tab.
+
 *RealExp.cpp*, *InitExp.cpp*, and *OutlierExp.cpp* are just source files that evaluates the performance of the algorithm. *InitExp.cpp* tests the algorithm under different rotation initializations, *OutlierExp.cpp* tests the algorithm under different outlier ratios, and *RealExp.cpp* tests the algorithm using real data.
 
 All other source files are main just helper files to extract frames, putative point correspondences, and to display the output of the five point algorithm in terms of the pose and triangulated 3D points.
