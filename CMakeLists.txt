@@ -25,21 +25,24 @@ ${SOURCE_DIR}/CvOrb.cpp
 ${SOURCE_DIR}/FivePoint.cpp
 )
 
-SET(LIBS opencv_core opencv_features2d opencv_flann cvd GVars3 GL GLU toontag lapack boost_system boost_thread pthread)
+SET(LIBS opencv_core opencv_features2d opencv_flann cvd GVars3 GL GLU toontag lapack pthread)
+
+ADD_LIBRARY(fivepoint STATIC ${SOURCES})
+TARGET_LINK_LIBRARIES(fivepoint ${LIBS})
 
 # Apps
-ADD_EXECUTABLE(main ${SOURCE_DIR}/main.cpp ${SOURCES})
-TARGET_LINK_LIBRARIES(main ${LIBS})
+ADD_EXECUTABLE(main ${SOURCE_DIR}/main.cpp)
+TARGET_LINK_LIBRARIES(main fivepoint)
 
-ADD_EXECUTABLE(LiveVideo ${SOURCE_DIR}/LiveVideo.cpp ${SOURCES})
-TARGET_LINK_LIBRARIES(LiveVideo ${LIBS})
+ADD_EXECUTABLE(LiveVideo ${SOURCE_DIR}/LiveVideo.cpp)
+TARGET_LINK_LIBRARIES(LiveVideo fivepoint)
 
 # Experiments
-ADD_EXECUTABLE(InitExp ${SOURCE_DIR}/InitExp.cpp ${SOURCES})
-TARGET_LINK_LIBRARIES(InitExp ${LIBS})
+ADD_EXECUTABLE(InitExp ${SOURCE_DIR}/InitExp.cpp)
+TARGET_LINK_LIBRARIES(InitExp fivepoint)
 
-ADD_EXECUTABLE(RealExp ${SOURCE_DIR}/RealExp.cpp ${SOURCES})
-TARGET_LINK_LIBRARIES(RealExp ${LIBS})
+ADD_EXECUTABLE(RealExp ${SOURCE_DIR}/RealExp.cpp)
+TARGET_LINK_LIBRARIES(RealExp fivepoint)
 
-#ADD_EXECUTABLE(OutlierExp ${SOURCE_DIR}/OutlierExp.cpp ${SOURCES})
-#TARGET_LINK_LIBRARIES(OutlierExp ${LIBS})
+ADD_EXECUTABLE(OutlierExp ${SOURCE_DIR}/OutlierExp.cpp)
+TARGET_LINK_LIBRARIES(OutlierExp fivepoint)
