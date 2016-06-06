@@ -1,5 +1,6 @@
 #include "FivePoint.h"
 #include "MEstimator.h"
+#include <fstream>
 #include <TooN/wls.h>
 #include <tag/five_point.h>
 
@@ -17,7 +18,7 @@ TwoViewSolver::Solve(std::vector<TwoViewMatch> &matchesAll_vec_,
     nHypothesis = nHypothesis_;
 
     ComputeBestEpipoles_RANSAC();
-    RefineInliers();
+//    RefineInliers();
 }
 
 TooN::Matrix<3>
@@ -163,8 +164,10 @@ TwoViewSolver::RefineInliers()
 void
 TwoViewSolver::ComputeBestEpipoles_RANSAC()
 {
-    const int n_minimal = 7;
+    const int n_minimal = 6;
     std::vector<int> indices(n_minimal,-1);
+
+//    std::ofstream permutations("../data/Z/indices_z30.txt", std::ios_base::app);
 
     double dBestScore = 0.0;
     inliersFlag_vec.resize(matchesAll_vec.size(), false);
@@ -185,7 +188,12 @@ TwoViewSolver::ComputeBestEpipoles_RANSAC()
                         isUnique = false;
             };
             indices[i] = n;
+//            permutations << n << " ";
+//            std::cout << n << " ";
+//            std::cout << n << std::endl;
         }
+//        std::cout << std::endl;
+//        permutations << std::endl;
 
         std::vector<TwoViewMatch> vSample;
         for(int i = 0; i < n_minimal; ++i)
@@ -213,12 +221,17 @@ TwoViewSolver::ComputeBestEpipoles_RANSAC()
             inliersFlag_vec = candidate_inliers;
         }
     }
+//    permutations.close();
 
+//    std::ofstream inliers_file;
+//    inliers_file.open("../data/X/inliers_x4.txt");
     for(size_t i = 0; i < inliersFlag_vec.size(); ++i)
     {
+//        inliers_file << inliersFlag_vec[i] << std::endl;
         if(inliersFlag_vec[i] == true)
             inliers_vec.push_back(matchesAll_vec[i]);
     }
+//    inliers_file.close();
 }
 
 double
@@ -229,12 +242,14 @@ TwoViewSolver::ComputeScore(const TooN::SO3<> &R1, const TooN::SO3<> &R2,
     TooN::Vector<3> RC1 = R1 * match.v3a;
     TooN::Vector<3> RC2 = R2 * match.v3b;
 
-    double A1 = std::atan2(RC1[1],RC1[0]);
-    double A2 = std::atan2(RC2[1],RC2[0]);
+//    double A1 = std::atan2(RC1[1],RC1[0]);
+//    double A2 = std::atan2(RC2[1],RC2[0]);
+    double A1 = myatan2(RC1[1],RC1[0]);
+    double A2 = myatan2(RC2[1],RC2[0]);
 
     double dErr = ComputeError(A1,A2);
     double dWeight = ComputeWeight(RC1,RC2);
-    double dWeightedError = fabs(dErr*dErr) * dWeight;
+    double dWeightedError = /*fabs(dErr*dErr)*/dErr*dErr * dWeight;
     if(dWeightedError < dThresh)
         return 1.0 - (dWeightedError / dThresh);
     else
@@ -272,8 +287,10 @@ TwoViewSolver::ComputeUpdate(std::vector<TooN::Vector<3> > &RC1,
     TooN::WLS<5> wls;
     for(size_t pt = 0; pt < RC1.size(); ++pt)
     {
-        double A1 = atan2((RC1[pt])[1],(RC1[pt])[0]);
-        double A2 = atan2((RC2[pt])[1],(RC2[pt])[0]);
+//        double A1 = atan2((RC1[pt])[1],(RC1[pt])[0]);
+//        double A2 = atan2((RC2[pt])[1],(RC2[pt])[0]);
+        double A1 = myatan2(RC1[pt][1],RC1[pt][0]);
+        double A2 = myatan2(RC2[pt][1],RC2[pt][0]);
 
         double dErr = ComputeError(A1, A2);
         double dWeight = ComputeWeight(RC1[pt], RC2[pt]);

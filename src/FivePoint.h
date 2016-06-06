@@ -76,6 +76,36 @@ private:
     TooN::Vector<3>
     ComputeJacobian(const TooN::Vector<3> v3);
 
+    inline double
+    myatan2(const double y, const double x)
+    {
+        const double c1 = 0.25*M_PI;
+        const double c2 = 0.273;
+        const double fabsy = fabs(y);
+        const double fabsx = fabs(x);
+        const double v = (fabsy-fabsx)/(fabsy+fabsx);
+
+        //		double phi = 0.25*M_PI*(1+x) - x*(fabs(x)-1)*(0.2447+0.0663*fabs(x));	// Uncomment me if you need more accuracy
+        //const double phi = 0.25*M_PI*(1+x)+0.273*x*(1-fabs(x));
+        //double phi = 0.25*M_PI*(1+x);
+
+        const double phi = c1 + v * (c1 + c2*(1-fabs(v)));
+
+        if(x>=0){
+            if(y>=0){
+                return phi;
+            } else {
+                return -phi;
+            }
+        } else {
+            if(y>=0){
+                return M_PI-phi;
+            } else {
+                return phi-M_PI;
+            }
+        }
+    }
+
     TooN::SO3<> so3BestR1;
     TooN::SO3<> so3BestR2;
 
